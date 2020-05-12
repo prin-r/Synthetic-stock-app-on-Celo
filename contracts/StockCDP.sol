@@ -1,173 +1,10 @@
 pragma solidity 0.5.17;
 pragma experimental ABIEncoderV2;
 
+import "openzeppelin-solidity/contracts/math/SafeMath.sol";
+import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 
-/**
- * @dev Wrappers over Solidity's arithmetic operations with added overflow
- * checks.
- *
- * Arithmetic operations in Solidity wrap on overflow. This can easily result
- * in bugs, because programmers usually assume that an overflow raises an
- * error, which is the standard behavior in high level programming languages.
- * `SafeMath` restores this intuition by reverting the transaction when an
- * operation overflows.
- *
- * Using this library instead of the unchecked operations eliminates an entire
- * class of bugs, so it's recommended to use it always.
- */
-library SafeMath {
-    /**
-     * @dev Returns the addition of two unsigned integers, reverting on
-     * overflow.
-     *
-     * Counterpart to Solidity's `+` operator.
-     *
-     * Requirements:
-     * - Addition cannot overflow.
-     */
-    function add(uint256 a, uint256 b) internal pure returns (uint256) {
-        uint256 c = a + b;
-        require(c >= a, "SafeMath: addition overflow");
-
-        return c;
-    }
-
-    /**
-     * @dev Returns the subtraction of two unsigned integers, reverting on
-     * overflow (when the result is negative).
-     *
-     * Counterpart to Solidity's `-` operator.
-     *
-     * Requirements:
-     * - Subtraction cannot overflow.
-     */
-    function sub(uint256 a, uint256 b) internal pure returns (uint256) {
-        return sub(a, b, "SafeMath: subtraction overflow");
-    }
-
-    /**
-     * @dev Returns the subtraction of two unsigned integers, reverting with custom message on
-     * overflow (when the result is negative).
-     *
-     * Counterpart to Solidity's `-` operator.
-     *
-     * Requirements:
-     * - Subtraction cannot overflow.
-     *
-     * _Available since v2.4.0._
-     */
-    function sub(uint256 a, uint256 b, string memory errorMessage)
-        internal
-        pure
-        returns (uint256)
-    {
-        require(b <= a, errorMessage);
-        uint256 c = a - b;
-
-        return c;
-    }
-
-    /**
-     * @dev Returns the multiplication of two unsigned integers, reverting on
-     * overflow.
-     *
-     * Counterpart to Solidity's `*` operator.
-     *
-     * Requirements:
-     * - Multiplication cannot overflow.
-     */
-    function mul(uint256 a, uint256 b) internal pure returns (uint256) {
-        // Gas optimization: this is cheaper than requiring 'a' not being zero, but the
-        // benefit is lost if 'b' is also tested.
-        // See: https://github.com/OpenZeppelin/openzeppelin-contracts/pull/522
-        if (a == 0) {
-            return 0;
-        }
-
-        uint256 c = a * b;
-        require(c / a == b, "SafeMath: multiplication overflow");
-
-        return c;
-    }
-
-    /**
-     * @dev Returns the integer division of two unsigned integers. Reverts on
-     * division by zero. The result is rounded towards zero.
-     *
-     * Counterpart to Solidity's `/` operator. Note: this function uses a
-     * `revert` opcode (which leaves remaining gas untouched) while Solidity
-     * uses an invalid opcode to revert (consuming all remaining gas).
-     *
-     * Requirements:
-     * - The divisor cannot be zero.
-     */
-    function div(uint256 a, uint256 b) internal pure returns (uint256) {
-        return div(a, b, "SafeMath: division by zero");
-    }
-
-    /**
-     * @dev Returns the integer division of two unsigned integers. Reverts with custom message on
-     * division by zero. The result is rounded towards zero.
-     *
-     * Counterpart to Solidity's `/` operator. Note: this function uses a
-     * `revert` opcode (which leaves remaining gas untouched) while Solidity
-     * uses an invalid opcode to revert (consuming all remaining gas).
-     *
-     * Requirements:
-     * - The divisor cannot be zero.
-     *
-     * _Available since v2.4.0._
-     */
-    function div(uint256 a, uint256 b, string memory errorMessage)
-        internal
-        pure
-        returns (uint256)
-    {
-        // Solidity only automatically asserts when dividing by 0
-        require(b > 0, errorMessage);
-        uint256 c = a / b;
-        // assert(a == b * c + a % b); // There is no case in which this doesn't hold
-
-        return c;
-    }
-
-    /**
-     * @dev Returns the remainder of dividing two unsigned integers. (unsigned integer modulo),
-     * Reverts when dividing by zero.
-     *
-     * Counterpart to Solidity's `%` operator. This function uses a `revert`
-     * opcode (which leaves remaining gas untouched) while Solidity uses an
-     * invalid opcode to revert (consuming all remaining gas).
-     *
-     * Requirements:
-     * - The divisor cannot be zero.
-     */
-    function mod(uint256 a, uint256 b) internal pure returns (uint256) {
-        return mod(a, b, "SafeMath: modulo by zero");
-    }
-
-    /**
-     * @dev Returns the remainder of dividing two unsigned integers. (unsigned integer modulo),
-     * Reverts with custom message when dividing by zero.
-     *
-     * Counterpart to Solidity's `%` operator. This function uses a `revert`
-     * opcode (which leaves remaining gas untouched) while Solidity uses an
-     * invalid opcode to revert (consuming all remaining gas).
-     *
-     * Requirements:
-     * - The divisor cannot be zero.
-     *
-     * _Available since v2.4.0._
-     */
-    function mod(uint256 a, uint256 b, string memory errorMessage)
-        internal
-        pure
-        returns (uint256)
-    {
-        require(b != 0, errorMessage);
-        return a % b;
-    }
-}
+import {ERC20Base} from "./ERC20Base.sol";
 
 
 library Borsh {
@@ -330,14 +167,7 @@ library Borsh {
 }
 
 
-library ResultDecoder {
-    using Borsh for Borsh.Data;
-
-    struct Result {
-        uint64 px;
-    }
-
-    // Convert an hexadecimal character to their value
+library BSLib {
     function fromHexChar(uint8 c) internal pure returns (uint8) {
         if (bytes1(c) >= bytes1("0") && bytes1(c) <= bytes1("9")) {
             return c - uint8(bytes1("0"));
@@ -350,7 +180,6 @@ library ResultDecoder {
         }
     }
 
-    // Convert an hexadecimal string to raw bytes
     function fromHex(string memory s) internal pure returns (bytes memory) {
         bytes memory ss = bytes(s);
         require(ss.length % 2 == 0); // length must be even
@@ -363,6 +192,35 @@ library ResultDecoder {
             );
         }
         return r;
+    }
+}
+
+
+library ParamsDecoder {
+    using Borsh for Borsh.Data;
+
+    struct Result {
+        string symbol;
+        uint64 multiplier;
+    }
+
+    function decodeParams(bytes memory _data)
+        internal
+        pure
+        returns (Result memory result)
+    {
+        Borsh.Data memory data = Borsh.from(_data);
+        result.symbol = string(data.decodeBytes());
+        result.multiplier = data.decodeU64();
+    }
+}
+
+
+library ResultDecoder {
+    using Borsh for Borsh.Data;
+
+    struct Result {
+        uint64 px;
     }
 
     function decodeResult(bytes memory _data)
@@ -406,24 +264,75 @@ interface IBridge {
 }
 
 
-contract StockCDP {
+contract StockCDP is Ownable, ERC20Base {
     using ResultDecoder for bytes;
-    using ResultDecoder for string;
+    using BSLib for string;
+
+    struct Config {
+        IBridge bridge;
+        uint64 oracleScriptId;
+        string symbol;
+        uint64 multiplier;
+    }
 
     IBridge.RequestPacket public latestReq;
     IBridge.ResponsePacket public latestRes;
-    IBridge public bridge;
+    Config public config;
 
-    constructor(IBridge _bridge) public {
-        bridge = _bridge;
+    constructor(
+        IBridge bridge,
+        uint64 oracleScriptId,
+        string memory symbol,
+        uint64 multiplier
+    ) public ERC20Base("S&P500", "SPX") {
+        config.bridge = bridge;
+        config.oracleScriptId = oracleScriptId;
+        config.symbol = symbol;
+        config.multiplier = multiplier;
     }
 
-    function relayAndSafe(bytes calldata _data) external {
-        (latestReq, latestRes) = bridge.relayAndVerify(_data);
+    function setConfig(
+        IBridge bridge,
+        uint64 oracleScriptId,
+        string memory symbol,
+        uint64 multiplier
+    ) public onlyOwner {
+        config.bridge = bridge;
+        config.oracleScriptId = oracleScriptId;
+        config.symbol = symbol;
+        config.multiplier = multiplier;
     }
 
-    function decodeResult(string memory s) public pure returns (uint64) {
-        ResultDecoder.Result memory result = s.fromHex().decodeResult();
+    function verifyAndGetPrice(bytes memory _data) public returns (uint64) {
+        (latestReq, latestRes) = config.bridge.relayAndVerify(_data);
+        ParamsDecoder.Params memory params = latestReq
+            .params
+            .fromHex()
+            .decodeParams();
+        require(
+            latestReq.oracleScriptId == config.oracleScriptId,
+            "ERROR_ORACLE_SCRIPT_ID_DOES_NOT_MATCH_WITH_THE_CONFIG"
+        );
+        require(
+            keccak256(abi.encodePacked(params.symbol)) ==
+                keccak256(abi.encodePacked(config.symbol)),
+            "ERROR_SYMBOL_DOES_NOT_MATCH_WITH_THE_CONFIG"
+        );
+        require(
+            params.multiplier == config.multiplier,
+            "ERROR_MULTIPLIER_DOES_NOT_MATCH_WITH_THE_CONFIG"
+        );
+
+        ResultDecoder.Result memory result = latestRes
+            .result
+            .fromHex()
+            .decodeResult();
+
         return result.px;
+    }
+
+    function lock(bytes memory _data) public {
+        uint256 val = verifyAndGetPrice(_data);
+        price = val;
     }
 }
