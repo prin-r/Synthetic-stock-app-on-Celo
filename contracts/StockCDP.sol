@@ -303,8 +303,11 @@ contract StockCDP is Ownable, ERC20Base {
         config.multiplier = multiplier;
     }
 
-    function verifyAndGetPrice(bytes memory _data) public returns (uint64) {
-        (latestReq, latestRes) = config.bridge.relayAndVerify(_data);
+    function verifyAndGetPrice(bytes memory _data) public returns (uint256) {
+        (
+            IBridge.RequestPacket memory latestReq,
+            IBridge.ResponsePacket memory latestRes
+        ) = config.bridge.relayAndVerify(_data);
         ParamsDecoder.Params memory params = latestReq
             .params
             .fromHex()
@@ -323,16 +326,90 @@ contract StockCDP is Ownable, ERC20Base {
             "ERROR_MULTIPLIER_DOES_NOT_MATCH_WITH_THE_CONFIG"
         );
 
+        // TODO: Check the conditions first if the reported price is too old
+
         ResultDecoder.Result memory result = latestRes
             .result
             .fromHex()
             .decodeResult();
 
-        return result.px;
+        return uint256(result.px);
     }
 
-    function lock(bytes memory _data) public {
-        uint256 val = verifyAndGetPrice(_data);
-        price = val;
+    function lockCollateral(uint256 amount) public {
+        // transfer dollar from sender to this contract
+        require(
+            config.dollar.transferFrom(msg.sender, address(this), amount),
+            "LOCK_COLLATERAL_FAIL_TO_TRANSFER_FROM"
+        );
+
+        // update CDP of the sender
+        CDP storage cdp = cdps[msg.sender];
+        cdp.collateralAmount = amount.add(cdp.collateralAmount);
+    }
+
+    function unlockCollateral(uint256 amount, bytes memory _data) public {
+        CDP storage cdp = cdps[msg.sender];
+        uint256 remainingCollateral = cdp.collateralAmount.sub(amount);
+
+        uint256 price = verifyAndGetPrice(_data);
+
+        require(
+            remainingCollateral.mul(2).mul(config.multiplier) >=
+                cdp.debtAmount.mul(price).mul(3),
+            "COLLATERAL_RATIO_IS_LOWER_THAN_TWO_THIRDS"
+        );
+
+        require(
+            config.dollar.transfer(msg.sender, amount),
+            "UNLOCK_COLLATERAL_FAIL_TO_TRANSFER"
+        );
+
+        cdp.collateralAmount = remainingCollateral;
+    }
+
+    function borrowDebt(uint256 amount, bytes memory _data) public {
+        CDP storage cdp = cdps[msg.sender];
+        uint256 debtAmount = cdp.debtAmount.add(amount);
+
+        uint256 price = verifyAndGetPrice(_data);
+
+        require(
+            cdp.collateralAmount.mul(2).mul(config.multiplier) >=
+                debtAmount.mul(price).mul(3),
+            "FAIL_TO_BORROW_EXCEED_COLLATERAL_VALUE"
+        );
+
+        _mint(msg.sender, amount);
+
+        cdp.debtAmount = debtAmount;
+    }
+
+    function returnDebt(uint256 amount) public {
+        _burn(msg.sender, amount);
+
+        CDP storage cdp = cdps[msg.sender];
+        cdp.debtAmount = cdp.debtAmount.sub(amount);
+    }
+
+    function liquidate(address who, bytes memory _data) public {
+        uint256 price = verifyAndGetPrice(_data);
+
+        CDP storage cdp = cdps[who];
+        require(
+            cdp.collateralAmount.mul(2).mul(config.multiplier) <
+                cdp.debtAmount.mul(price).mul(3),
+            "FAIL_TO_LIQUIDATE_COLLATERAL_RATIO_IS_OK"
+        );
+
+        _burn(msg.sender, cdp.debtAmount);
+
+        require(
+            config.dollar.transfer(msg.sender, cdp.collateralAmount),
+            "LIQUIDATE_FAIL_TO_TRANSFER"
+        );
+
+        cdp.collateralAmount = 0;
+        cdp.debtAmount = 0;
     }
 }
