@@ -1,0 +1,20 @@
+{
+  "name": "@bandprotocol/bandchain-devnet",
+  "version": "0.0.3",
+  "main": "index.js",
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@cosmostation/cosmosjs": "^0.5.6",
+    "axios": "^0.19.2",
+    "borsh": "^0.2.6"
+  },
+  "devDependencies": {},
+  "description": ""
+}
