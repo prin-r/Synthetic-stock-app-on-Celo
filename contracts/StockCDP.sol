@@ -265,27 +265,37 @@ interface IBridge {
 
 
 contract StockCDP is Ownable, ERC20Base {
+    using SafeMath for uint256;
     using ResultDecoder for bytes;
+    using ParamsDecoder for bytes;
     using BSLib for string;
 
     struct Config {
         IBridge bridge;
+        ERC20Base dollar;
         uint64 oracleScriptId;
         string symbol;
         uint64 multiplier;
     }
 
-    IBridge.RequestPacket public latestReq;
-    IBridge.ResponsePacket public latestRes;
+    struct CDP {
+        uint256 collateralAmount;
+        uint256 debtAmount;
+    }
+
     Config public config;
+
+    mapping(address => CDP) public cdps;
 
     constructor(
         IBridge bridge,
+        ERC20Base dollar,
         uint64 oracleScriptId,
         string memory symbol,
         uint64 multiplier
     ) public ERC20Base("S&P500", "SPX") {
         config.bridge = bridge;
+        config.dollar = dollar;
         config.oracleScriptId = oracleScriptId;
         config.symbol = symbol;
         config.multiplier = multiplier;
@@ -293,11 +303,13 @@ contract StockCDP is Ownable, ERC20Base {
 
     function setConfig(
         IBridge bridge,
+        ERC20Base dollar,
         uint64 oracleScriptId,
         string memory symbol,
         uint64 multiplier
     ) public onlyOwner {
         config.bridge = bridge;
+        config.dollar = dollar;
         config.oracleScriptId = oracleScriptId;
         config.symbol = symbol;
         config.multiplier = multiplier;
