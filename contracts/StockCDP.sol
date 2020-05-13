@@ -5,6 +5,7 @@ import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 
 import {ERC20Base} from "./ERC20Base.sol";
+import {IBridge} from "./IBridge.sol";
 
 
 library Borsh {
@@ -231,36 +232,6 @@ library ResultDecoder {
         Borsh.Data memory data = Borsh.from(_data);
         result.px = data.decodeU64();
     }
-}
-
-
-interface IBridge {
-    /// Request packet struct is similar packet on Bandchain using to re-calculate result hash.
-    struct RequestPacket {
-        string clientId;
-        uint64 oracleScriptId;
-        string params;
-        uint64 askCount;
-        uint64 minCount;
-    }
-
-    /// Response packet struct is similar packet on Bandchain using to re-calculate result hash.
-    struct ResponsePacket {
-        string clientId;
-        uint64 requestId;
-        uint64 ansCount;
-        uint64 requestTime;
-        uint64 resolveTime;
-        uint8 resolveStatus;
-        string result;
-    }
-
-    /// Performs oracle state relay and oracle data verification in one go. The caller submits
-    /// the encoded proof and receives back the decoded data, ready to be validated and used.
-    /// @param _data The encoded data for oracle state relay and data verification.
-    function relayAndVerify(bytes calldata _data)
-        external
-        returns (RequestPacket memory, ResponsePacket memory);
 }
 
 
