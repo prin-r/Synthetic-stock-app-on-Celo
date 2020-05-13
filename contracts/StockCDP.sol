@@ -19,6 +19,7 @@ contract StockCDP is Ownable, ERC20Base {
     struct Config {
         IBridge bridge;
         ERC20Base dollar;
+        uint256 timeTolerance;
         uint64 oracleScriptId;
         string symbol;
         uint64 multiplier;
@@ -36,12 +37,14 @@ contract StockCDP is Ownable, ERC20Base {
     constructor(
         IBridge bridge,
         ERC20Base dollar,
+        uint256 timeTolerance,
         uint64 oracleScriptId,
         string memory symbol,
         uint64 multiplier
     ) public ERC20Base("S&P500", "SPX") {
         config.bridge = bridge;
         config.dollar = dollar;
+        config.timeTolerance = timeTolerance;
         config.oracleScriptId = oracleScriptId;
         config.symbol = symbol;
         config.multiplier = multiplier;
@@ -50,12 +53,14 @@ contract StockCDP is Ownable, ERC20Base {
     function setConfig(
         IBridge bridge,
         ERC20Base dollar,
+        uint256 timeTolerance,
         uint64 oracleScriptId,
         string memory symbol,
         uint64 multiplier
     ) public onlyOwner {
         config.bridge = bridge;
         config.dollar = dollar;
+        config.timeTolerance = timeTolerance;
         config.oracleScriptId = oracleScriptId;
         config.symbol = symbol;
         config.multiplier = multiplier;
@@ -84,7 +89,17 @@ contract StockCDP is Ownable, ERC20Base {
             "ERROR_MULTIPLIER_DOES_NOT_MATCH_WITH_THE_CONFIG"
         );
 
-        // TODO: Check the conditions first if the reported price is too old
+        // If config.timeTolerance is zero, it is considered unused.
+        if (config.timeTolerance > 0) {
+            require(
+                latestRes.resolveTime >= now - config.timeTolerance,
+                "ERROR_DATA_TOO_OLD"
+            );
+            require(
+                latestRes.resolveTime <= now + config.timeTolerance,
+                "ERROR_DATA_TOO_FUTURE"
+            );
+        }
 
         ResultDecoder.Result memory result = latestRes
             .result
