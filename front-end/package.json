@@ -1,20 +1,51 @@
 {
-  "name": "@bandprotocol/bandchain-devnet",
-  "version": "0.0.3",
-  "main": "index.js",
-  "publishConfig": {
-    "access": "public"
+  "name": "band-celo",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "@bandprotocol/bandchain-devnet": "^0.0.3",
+    "@celo/contractkit": "^0.4.4",
+    "@cosmostation/cosmosjs": "^0.5.6",
+    "@testing-library/jest-dom": "^4.2.4",
+    "@testing-library/react": "^9.3.2",
+    "@testing-library/user-event": "^7.1.2",
+    "axios": "^0.19.2",
+    "axios-hooks": "^1.10.0",
+    "big.js": "^5.2.2",
+    "bip39": "^3.0.2",
+    "borsh": "^0.2.6",
+    "lcp": "^1.1.0",
+    "react": "^16.13.1",
+    "react-dom": "^16.13.1",
+    "react-router-dom": "^5.1.2",
+    "react-scripts": "3.4.1",
+    "rebass": "^4.0.7",
+    "styled-components": "^5.1.0"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "react-scripts start",
+    "build": "GENERATE_SOURCEMAP=false react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject"
   },
-  "author": "",
-  "license": "ISC",
-  "dependencies": {
-    "@cosmostation/cosmosjs": "^0.5.6",
-    "axios": "^0.19.2",
-    "borsh": "^0.2.6"
+  "eslintConfig": {
+    "extends": "react-app"
   },
-  "devDependencies": {},
-  "description": ""
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "prettier": {
+    "trailingComma": "all",
+    "semi": false,
+    "singleQuote": true
+  }
 }
