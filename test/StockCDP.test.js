@@ -330,6 +330,27 @@ contract("StockCDP", ([_, owner, alice, bob]) => {
             .toString()
             .should.eq((1000000 - 10000).toString());
         });
+
+        it("should not be able to liquidate if the liquidator doesn't have enough SPX", async () => {
+          await this.scdp.borrowDebt(
+            "100", // borrow 100 SPX
+            "0x00", // Mock proof can be any bytes
+            { from: alice },
+          );
+
+          (await this.scdp.balanceOf(bob)).toString().should.eq("0");
+          (await this.scdp.balanceOf(alice)).toString().should.eq("100");
+
+          // Owner bullied Alice by sending tx to increase the price unexpectedly
+          // 1.5 * 100 * 100 (debt * price) = 15000 which is more than 10000 (Alice's collateral)
+          await this.bridge.setPriceToBe100({ from: owner });
+
+          // Bob can not liquidate Alice right now
+          await expectRevert(
+            this.scdp.liquidate(alice, "0x00", { from: bob }),
+            "FAIL_TO_LIQUIDATE_COLLATERAL_RATIO_IS_OK",
+          );
+        });
       });
     });
   });
