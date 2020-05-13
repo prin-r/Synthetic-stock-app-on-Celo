@@ -92,11 +92,11 @@ contract StockCDP is Ownable, ERC20Base {
         // If config.timeTolerance is zero, it is considered unused.
         if (config.timeTolerance > 0) {
             require(
-                latestRes.resolveTime >= now - config.timeTolerance,
+                latestRes.resolveTime >= (now).sub(config.timeTolerance),
                 "ERROR_DATA_TOO_OLD"
             );
             require(
-                latestRes.resolveTime <= now + config.timeTolerance,
+                latestRes.resolveTime <= (now).add(config.timeTolerance),
                 "ERROR_DATA_TOO_FUTURE"
             );
         }
