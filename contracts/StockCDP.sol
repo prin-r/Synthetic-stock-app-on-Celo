@@ -199,7 +199,7 @@ library BSLib {
 library ParamsDecoder {
     using Borsh for Borsh.Data;
 
-    struct Result {
+    struct Params {
         string symbol;
         uint64 multiplier;
     }
@@ -207,7 +207,7 @@ library ParamsDecoder {
     function decodeParams(bytes memory _data)
         internal
         pure
-        returns (Result memory result)
+        returns (Params memory result)
     {
         Borsh.Data memory data = Borsh.from(_data);
         result.symbol = string(data.decodeBytes());
