@@ -345,10 +345,78 @@ contract("StockCDP", ([_, owner, alice, bob]) => {
           // 1.5 * 100 * 100 (debt * price) = 15000 which is more than 10000 (Alice's collateral)
           await this.bridge.setPriceToBe100({ from: owner });
 
-          // Bob can not liquidate Alice right now
+          // Bob can not liquidate Alice right now because he got 0 SPX
           await expectRevert(
             this.scdp.liquidate(alice, "0x00", { from: bob }),
-            "FAIL_TO_LIQUIDATE_COLLATERAL_RATIO_IS_OK",
+            "ERC20: burn amount exceeds balance.",
+          );
+
+          // The owner cheated the system by casting SPX for Bob.
+          await this.scdp.mint(bob, 50, { from: owner });
+
+          // Bob can not liquidate Alice right now because he got 50 SPX
+          // Bob need more SPX (SPX >= 100)
+          await expectRevert(
+            this.scdp.liquidate(alice, "0x00", { from: bob }),
+            "ERC20: burn amount exceeds balance.",
+          );
+
+          // The owner cheated the system by casting SPX for Bob.
+          await this.scdp.mint(bob, 5000, { from: owner });
+
+          // Bob can now liquidate Alice's CDP
+          await this.scdp.liquidate(alice, "0x00", { from: bob });
+
+          (await this.scdp.balanceOf(alice)).toString().should.eq("100");
+          (await this.scdp.balanceOf(bob))
+            .toString()
+            .should.eq((50 + 5000 - 100).toString());
+
+          (await this.dollar.balanceOf(bob))
+            .toString()
+            .should.eq((1000000 + 10000).toString());
+          (await this.dollar.balanceOf(alice))
+            .toString()
+            .should.eq((1000000 - 10000).toString());
+        });
+
+        it("should not be able return debt after the CDP has been liquidate", async () => {
+          await this.scdp.borrowDebt(
+            "100", // borrow 100 SPX
+            "0x00", // Mock proof can be any bytes
+            { from: alice },
+          );
+
+          (await this.scdp.balanceOf(bob)).toString().should.eq("0");
+          (await this.scdp.balanceOf(alice)).toString().should.eq("100");
+
+          // Owner bullied Alice by sending tx to increase the price unexpectedly
+          // 1.5 * 100 * 100 (debt * price) = 15000 which is more than 10000 (Alice's collateral)
+          await this.bridge.setPriceToBe100({ from: owner });
+
+          // The owner cheated the system by casting SPX for Bob.
+          await this.scdp.mint(bob, 100, { from: owner });
+
+          // Bob can now liquidate Alice's CDP
+          await this.scdp.liquidate(alice, "0x00", { from: bob });
+
+          (await this.scdp.balanceOf(alice)).toString().should.eq("100");
+          (await this.scdp.balanceOf(bob)).toString().should.eq("0");
+
+          (await this.dollar.balanceOf(bob))
+            .toString()
+            .should.eq((1000000 + 10000).toString());
+          (await this.dollar.balanceOf(alice))
+            .toString()
+            .should.eq((1000000 - 10000).toString());
+
+          // Alice can no longer return the debt because it has been liquidate
+          await expectRevert(
+            this.scdp.returnDebt(
+              "100", // return 100 SPX
+              { from: alice },
+            ),
+            "SafeMath: subtraction overflow.",
           );
         });
       });
