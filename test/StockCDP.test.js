@@ -39,19 +39,19 @@ contract("StockCDP", ([_, owner, alice, bob]) => {
       it("should be able to set price for mock bridge", async () => {
         (await this.bridge.encodedPrice())
           .toString()
-          .should.eq("3200000000000000");
+          .should.eq("8813000000000000");
 
         await this.bridge.setPriceToBe100();
 
         (await this.bridge.encodedPrice())
           .toString()
-          .should.eq("6400000000000000");
+          .should.eq("1027000000000000");
 
         await this.bridge.setPriceToBe50();
 
         (await this.bridge.encodedPrice())
           .toString()
-          .should.eq("3200000000000000");
+          .should.eq("8813000000000000");
       });
     });
 
@@ -132,7 +132,7 @@ contract("StockCDP", ([_, owner, alice, bob]) => {
             .should.eq("0");
         });
 
-        it("should be able to borrow if value of callateral >= 1.5*debt", async () => {
+        it("should be able to borrow as long as value of callateral >= 1.5*debt", async () => {
           await this.scdp.borrowDebt(
             "100", // borrow 100 SPX
             "0x00", // Mock proof can be any bytes
@@ -142,12 +142,193 @@ contract("StockCDP", ([_, owner, alice, bob]) => {
           (await this.scdp.balanceOf(alice)).toString().should.eq("100");
 
           await this.scdp.borrowDebt(
-            "20", // borrow more 20 SPX
+            "33", // borrow more 33 SPX
             "0x00", // Mock proof can be any bytes
             { from: alice },
           );
 
-          (await this.scdp.balanceOf(alice)).toString().should.eq("120");
+          (await this.scdp.balanceOf(alice)).toString().should.eq("133");
+
+          // 133*50 = 6650 which is 66.5% of 10,000
+          // The value of callateral is now equal to the value of 1.5*debt
+          // Should not be able to borrow anymore
+          await expectRevert(
+            this.scdp.borrowDebt(
+              "1", // borrow more 1 SPX
+              "0x00", // Mock proof can be any bytes
+              { from: alice },
+            ),
+            "FAIL_TO_BORROW_EXCEED_COLLATERAL_VALUE",
+          );
+        });
+
+        it("should be able to borrow and return debt", async () => {
+          await this.scdp.borrowDebt(
+            "100", // borrow 100 SPX
+            "0x00", // Mock proof can be any bytes
+            { from: alice },
+          );
+
+          (await this.scdp.balanceOf(alice)).toString().should.eq("100");
+
+          await this.scdp.returnDebt(
+            "50", // return 50 SPX
+            { from: alice },
+          );
+
+          (await this.scdp.balanceOf(alice)).toString().should.eq("50");
+
+          await this.scdp.borrowDebt(
+            "25", // borrow 25 SPX
+            "0x00", // Mock proof can be any bytes
+            { from: alice },
+          );
+
+          (await this.scdp.balanceOf(alice)).toString().should.eq("75");
+
+          await this.scdp.returnDebt(
+            "75", // return 75 SPX
+            { from: alice },
+          );
+
+          (await this.scdp.balanceOf(alice)).toString().should.eq("0");
+        });
+
+        it("should not be able to return more than the amount borrowed", async () => {
+          // Alice cannot return debt because she haven't borrowed anything at all
+          await expectRevert(
+            this.scdp.returnDebt(
+              "1", // return 1 SPX
+              { from: alice },
+            ),
+            "ERC20: burn amount exceeds balance.",
+          );
+
+          await this.scdp.borrowDebt(
+            "100", // borrow 100 SPX
+            "0x00", // Mock proof can be any bytes
+            { from: alice },
+          );
+
+          (await this.scdp.balanceOf(alice)).toString().should.eq("100");
+
+          // Alice cannot return more than the amount borrowed
+          await expectRevert(
+            this.scdp.returnDebt(
+              "200", // return 200 SPX
+              { from: alice },
+            ),
+            "ERC20: burn amount exceeds balance.",
+          );
+        });
+
+        it("should be able to transfer SPX freely after borrowing", async () => {
+          await this.scdp.borrowDebt(
+            "100", // borrow 100 SPX
+            "0x00", // Mock proof can be any bytes
+            { from: alice },
+          );
+
+          (await this.scdp.balanceOf(bob)).toString().should.eq("0");
+          (await this.scdp.balanceOf(alice)).toString().should.eq("100");
+
+          await this.scdp.transfer(bob, 40, { from: alice });
+
+          (await this.scdp.balanceOf(bob)).toString().should.eq("40");
+          (await this.scdp.balanceOf(alice)).toString().should.eq("60");
+
+          await this.scdp.transfer(bob, 60, { from: alice });
+
+          (await this.scdp.balanceOf(bob)).toString().should.eq("100");
+          (await this.scdp.balanceOf(alice)).toString().should.eq("0");
+
+          await this.scdp.transfer(alice, 100, { from: bob });
+
+          (await this.scdp.balanceOf(bob)).toString().should.eq("0");
+          (await this.scdp.balanceOf(alice)).toString().should.eq("100");
+        });
+
+        it("should not be able return debt if you don't have it anymore", async () => {
+          await this.scdp.borrowDebt(
+            "100", // borrow 100 SPX
+            "0x00", // Mock proof can be any bytes
+            { from: alice },
+          );
+
+          (await this.scdp.balanceOf(bob)).toString().should.eq("0");
+          (await this.scdp.balanceOf(alice)).toString().should.eq("100");
+
+          // Alice --- 100 SPX ---> Bob
+          await this.scdp.transfer(bob, 100, { from: alice });
+
+          (await this.scdp.balanceOf(bob)).toString().should.eq("100");
+          (await this.scdp.balanceOf(alice)).toString().should.eq("0");
+
+          // Now Alice has 0 SPX because she has sent all the SPX to Bob
+          await expectRevert(
+            this.scdp.returnDebt(
+              "100", // try to return 100 SPX
+              { from: alice },
+            ),
+            "ERC20: burn amount exceeds balance.",
+          );
+
+          // Alice <--- 100 SPX --- Bob
+          await this.scdp.transfer(alice, 100, { from: bob });
+
+          await this.scdp.returnDebt(
+            "100", // return 100 SPX
+            { from: alice },
+          );
+
+          (await this.scdp.balanceOf(bob)).toString().should.eq("0");
+          (await this.scdp.balanceOf(alice)).toString().should.eq("0");
+        });
+
+        it("should be able to liquidate Alice of her collateral doesn't meet the conditions", async () => {
+          await this.scdp.borrowDebt(
+            "100", // borrow 100 SPX
+            "0x00", // Mock proof can be any bytes
+            { from: alice },
+          );
+
+          (await this.dollar.balanceOf(bob)).toString().should.eq("1000000");
+          (await this.dollar.balanceOf(alice))
+            .toString()
+            .should.eq((1000000 - 10000).toString());
+
+          (await this.scdp.balanceOf(bob)).toString().should.eq("0");
+          (await this.scdp.balanceOf(alice)).toString().should.eq("100");
+
+          // Alice --- 100 SPX ---> Bob
+          await this.scdp.transfer(bob, 100, { from: alice });
+
+          (await this.scdp.balanceOf(bob)).toString().should.eq("100");
+          (await this.scdp.balanceOf(alice)).toString().should.eq("0");
+
+          // Bob can not liquidate Alice right now
+          await expectRevert(
+            this.scdp.liquidate(alice, "0x00", { from: bob }),
+            "FAIL_TO_LIQUIDATE_COLLATERAL_RATIO_IS_OK",
+          );
+
+          // Owner bullied Alice by sending tx to increase the price unexpectedly
+          // 1.5 * 100 * 100 (debt * price) = 15000 which is more than 10000 (Alice's collateral)
+          await this.bridge.setPriceToBe100({ from: owner });
+
+          // Bob try to liquidate again
+          // Bob should be able to do it now
+          await this.scdp.liquidate(alice, "0x00", { from: bob });
+
+          (await this.scdp.balanceOf(bob)).toString().should.eq("0");
+          (await this.scdp.balanceOf(alice)).toString().should.eq("0");
+
+          (await this.dollar.balanceOf(bob))
+            .toString()
+            .should.eq((1000000 + 10000).toString());
+          (await this.dollar.balanceOf(alice))
+            .toString()
+            .should.eq((1000000 - 10000).toString());
         });
       });
     });
