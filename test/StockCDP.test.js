@@ -13,6 +13,7 @@ contract("StockCDP", ([_, owner, alice, bob]) => {
       this.scdp = await StockCDP.new(
         this.bridge.address,
         this.dollar.address,
+        0,
         12,
         "^GSPC",
         100,
@@ -23,17 +24,38 @@ contract("StockCDP", ([_, owner, alice, bob]) => {
     context("Basics", () => {
       it("should get the correct config", async () => {
         const config = await this.scdp.config();
-        [config[0], config[1], config[2], config[3], config[4]]
+        [config[0], config[1], config[2], config[3], config[4], config[5]]
           .toString()
           .should.eq(
             [
               this.bridge.address,
               this.dollar.address,
+              0,
               12,
               "^GSPC",
               100,
             ].toString(),
           );
+      });
+
+      it("should be able to set config by owner", async () => {
+        await this.scdp.setConfig(alice, bob, 100, 1, "mumu", 1000000, {
+          from: owner,
+        });
+
+        const config = await this.scdp.config();
+        [config[0], config[1], config[2], config[3], config[4], config[5]]
+          .toString()
+          .should.eq([alice, bob, 100, 1, "mumu", 1000000].toString());
+      });
+
+      it("should not be able to set config someone that is not the owner", async () => {
+        await expectRevert(
+          this.scdp.setConfig(alice, bob, 100, 1, "mumu", 1000000, {
+            from: alice,
+          }),
+          "Ownable: caller is not the owner.",
+        );
       });
 
       it("should be able to set price for mock bridge", async () => {
