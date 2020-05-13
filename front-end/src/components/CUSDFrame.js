@@ -11,6 +11,8 @@ export default ({ kitInst }) => {
       setCUSD(await getCUSDBalance(kitInst))
     }
     fetchData()
+    const itid = setInterval(fetchData, 3000)
+    return () => clearInterval(itid)
   }, [])
   return (
     <Flex
@@ -38,7 +40,7 @@ export default ({ kitInst }) => {
         justifyContent="space-between"
         style={{ fontSize: '0.95vw' }}
       >
-        Address <Text>{getAddress(kitInst)}</Text>
+        Address <Text>{'0x' + getAddress(kitInst)}</Text>
       </Flex>
       <Flex
         mt="1.0vw"

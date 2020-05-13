@@ -10,12 +10,13 @@ import CUSDFrame from './components/CUSDFrame'
 import Liquidate from './components/Liquidate'
 import Debt from './components/Debt'
 
-import { newCeloKit } from './utils/proof'
+import { newCeloKit, sentApprove10M, getAllowance } from './utils/proof'
 
 const isValidPk = (pk) => pk && pk.match(/^[0-9A-Fa-f]{64}$/g) !== null
 
 export default () => {
   const kitRef = useRef(null)
+  const [isLoading, setIsLoading] = useState(false)
   const [isLogin, setIsLogin] = useState(false)
 
   return !isLogin ? (
@@ -27,21 +28,33 @@ export default () => {
       flexDirection="column"
       width="70vw"
     >
-      <button
-        onClick={async () => {
-          const pk = window.prompt('Login with your private key')
-          if (!isValidPk(pk)) {
-            alert('invalid private key format')
-          } else {
-            kitRef.current = newCeloKit()
-            kitRef.current.addAccount(pk)
-            setIsLogin(true)
-          }
-        }}
-        style={{ padding: '1.0vw', borderRadius: '4px' }}
-      >
-        <Text fontSize="2.0vw">Login</Text>
-      </button>
+      {!isLoading ? (
+        <button
+          onClick={async () => {
+            const pk = window.prompt('Login with your private key')
+            if (!isValidPk(pk)) {
+              alert('invalid private key format')
+            } else {
+              setIsLoading(true)
+              kitRef.current = newCeloKit()
+              kitRef.current.addAccount(pk)
+              let alllowance = await getAllowance(kitRef.current)
+              if (alllowance > 1000000) {
+                console.log(alllowance)
+              } else {
+                await sentApprove10M(kitRef.current)
+              }
+              setIsLogin(true)
+              setIsLoading(false)
+            }
+          }}
+          style={{ padding: '1.0vw', borderRadius: '4px' }}
+        >
+          <Text fontSize="2.0vw">Login</Text>
+        </button>
+      ) : (
+        <Text fontSize="2.0vw">Loading...</Text>
+      )}
     </Flex>
   ) : (
     <ThemeProvider theme={theme}>
@@ -78,7 +91,7 @@ export default () => {
             <Liquidate />
           </Flex>
           <Flex>
-            <Debt />
+            <Debt kitInst={kitRef.current} />
           </Flex>
         </Flex>
       </Flex>
