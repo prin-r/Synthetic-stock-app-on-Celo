@@ -6,6 +6,10 @@ import {
   allowance,
   lock,
   unlock,
+  borrow,
+  returnDebt,
+  transfer,
+  liquidate,
 } from './calldata'
 
 const Kit = require('@celo/contractkit')
@@ -20,6 +24,7 @@ const multiplier = 100
 const schema = `{"Input":"{ \\"kind\\": \\"struct\\", \\"fields\\": [ [\\"symbol\\", \\"string\\"], [\\"multiplier\\", \\"u64\\"] ] }","Output":"{ \\"kind\\": \\"struct\\", \\"fields\\": [ [\\"px\\", \\"u64\\"] ] }"}`
 
 const requestAndGetProof = async () => {
+  window.addLogs('start getting proof from bandchain')
   let calldata = bandchain.getStockPriceCalldata(
     schema,
     'Input',
@@ -31,6 +36,7 @@ const requestAndGetProof = async () => {
     oracleScriptID,
     calldata,
   )
+  window.addLogs('proof size is ' + proof.length / 2 + 'bytes')
   return proof
 }
 
@@ -47,13 +53,13 @@ const getCUSDBalance = async (kitInst) => {
         data: balanceOf(getAddress(kitInst)),
       }),
     )
-    return cusd / 1e18
+    return cusd
   } catch (e) {
     return -1
   }
 }
 
-const sentApprove10M = async (kitInst) => {
+const sendApprove10M = async (kitInst) => {
   let tx = await kitInst.sendTransaction({
     from: '0x' + getAddress(kitInst),
     to: '0xa561131a1C8aC25925FB848bCa45A74aF61e5A38',
@@ -73,7 +79,7 @@ const getAllowance = async (kitInst) => {
         data: allowance(getAddress(kitInst)),
       }),
     )
-    return x / 1e18
+    return x
   } catch (e) {
     return -1
   }
@@ -87,7 +93,7 @@ const getSPXBalance = async (kitInst) => {
         data: balanceOf(getAddress(kitInst)),
       }),
     )
-    return spx / 1e18
+    return spx
   } catch (e) {
     return -1
   }
@@ -107,33 +113,113 @@ const getCDP = async (kitInst) => {
   return [0, 0]
 }
 
-const sentLock = async (kitInst, amount) => {
-  let tx = await kitInst.sendTransaction({
-    from: '0x' + getAddress(kitInst),
-    to: '0x3ffBc08b878D489fec0c80fa65C9B3933B361764',
-    data: lock(amount),
-    gas: '8000000',
-  })
+const sendLock = async (kitInst, amount) => {
+  window.addLogs('start sending lock tx')
+  try {
+    let tx = await kitInst.sendTransaction({
+      from: '0x' + getAddress(kitInst),
+      to: '0x3ffBc08b878D489fec0c80fa65C9B3933B361764',
+      data: lock(amount),
+      gas: '8000000',
+    })
 
-  const receipt = await tx.waitReceipt()
-  return receipt
+    const receipt = await tx.waitReceipt()
+    window.addLogs('tx hash is ' + receipt['transactionHash'].trim())
+  } catch (e) {
+    window.addLogs('fail to lock :' + JSON.stringify(e.message))
+  }
 }
 
-const sentUnlock = async (kitInst, amount) => {
-  const proof = await requestAndGetProof()
-  let tx = await kitInst.sendTransaction({
-    from: '0x' + getAddress(kitInst),
-    to: '0x3ffBc08b878D489fec0c80fa65C9B3933B361764',
-    data: unlock(amount, proof),
-    gas: '8000000',
-  })
+const sendUnlock = async (kitInst, amount) => {
+  window.addLogs('start sending unlock tx')
+  try {
+    const proof = await requestAndGetProof()
+    let tx = await kitInst.sendTransaction({
+      from: '0x' + getAddress(kitInst),
+      to: '0x3ffBc08b878D489fec0c80fa65C9B3933B361764',
+      data: unlock(amount, proof),
+      gas: '8000000',
+    })
 
-  const receipt = await tx.waitReceipt()
-  return receipt
+    const receipt = await tx.waitReceipt()
+    window.addLogs('tx hash is ' + receipt['transactionHash'].trim())
+  } catch (e) {
+    window.addLogs('fail to unlock :' + JSON.stringify(e.message))
+  }
+}
+
+const sendBorrow = async (kitInst, amount) => {
+  window.addLogs('start sending borrow tx')
+  try {
+    const proof = await requestAndGetProof()
+    let tx = await kitInst.sendTransaction({
+      from: '0x' + getAddress(kitInst),
+      to: '0x3ffBc08b878D489fec0c80fa65C9B3933B361764',
+      data: borrow(amount, proof),
+      gas: '8000000',
+    })
+
+    const receipt = await tx.waitReceipt()
+    window.addLogs('tx hash is ' + receipt['transactionHash'].trim())
+  } catch (e) {
+    window.addLogs('fail to borrow :' + JSON.stringify(e.message))
+  }
+}
+
+const sendReturnDebt = async (kitInst, amount) => {
+  window.addLogs('start sending returnDebt tx')
+  try {
+    let tx = await kitInst.sendTransaction({
+      from: '0x' + getAddress(kitInst),
+      to: '0x3ffBc08b878D489fec0c80fa65C9B3933B361764',
+      data: returnDebt(amount),
+      gas: '8000000',
+    })
+
+    const receipt = await tx.waitReceipt()
+    window.addLogs('tx hash is ' + receipt['transactionHash'].trim())
+  } catch (e) {
+    window.addLogs('fail to return debt :' + JSON.stringify(e.message))
+  }
+}
+
+const sendTransfer = async (kitInst, toAddress, amount) => {
+  window.addLogs('start sending transfer tx')
+  try {
+    let tx = await kitInst.sendTransaction({
+      from: '0x' + getAddress(kitInst),
+      to: '0x3ffBc08b878D489fec0c80fa65C9B3933B361764',
+      data: transfer(toAddress, amount),
+      gas: '8000000',
+    })
+
+    const receipt = await tx.waitReceipt()
+    window.addLogs('tx hash is ' + receipt['transactionHash'].trim())
+  } catch (e) {
+    window.addLogs('fail to transfer :' + JSON.stringify(e.message))
+  }
+}
+
+const sendLiquidate = async (kitInst, who) => {
+  window.addLogs('start sending liquidate tx')
+  try {
+    const proof = await requestAndGetProof()
+    let tx = await kitInst.sendTransaction({
+      from: '0x' + getAddress(kitInst),
+      to: '0x3ffBc08b878D489fec0c80fa65C9B3933B361764',
+      data: liquidate(who, proof),
+      gas: '8000000',
+    })
+
+    const receipt = await tx.waitReceipt()
+    window.addLogs('tx hash is ' + receipt['transactionHash'].trim())
+  } catch (e) {
+    window.addLogs('fail to liquidate :' + JSON.stringify(e.message))
+  }
 }
 
 export {
-  sentApprove10M,
+  sendApprove10M,
   requestAndGetProof,
   newCeloKit,
   getAllowance,
@@ -141,6 +227,10 @@ export {
   getSPXBalance,
   getAddress,
   getCDP,
-  sentLock,
-  sentUnlock,
+  sendLock,
+  sendUnlock,
+  sendBorrow,
+  sendReturnDebt,
+  sendTransfer,
+  sendLiquidate,
 }
