@@ -8,11 +8,33 @@ export const allowance = (address) =>
   '0000000000000000000000003ffbc08b878d489fec0c80fa65c9b3933b361764'
 
 export const lock = (amount) =>
-  '0xe2233cbd' + amount.toString(16).padStart(64, '0')
+  '0xe2233cbd' + Number(amount).toString(16).padStart(64, '0')
 
 export const unlock = (amount, proof) =>
   '0x25d6f6cf' +
-  amount.toString(16).padStart(64, '0') +
-  '4'.padStart(64, '0') +
-  proof.length.toString(16).padStart(64, '0') +
+  Number(amount).toString(16).padStart(64, '0') +
+  '40'.padStart(64, '0') +
+  (proof.length / 2).toString(16).padStart(64, '0') +
   proof
+
+export const borrow = (amount, proof) =>
+  '0x3186c0d9' +
+  Number(amount).toString(16).padStart(64, '0') +
+  '40'.padStart(64, '0') +
+  (proof.length / 2).toString(16).padStart(64, '0') +
+  proof
+
+export const returnDebt = (amount) =>
+  '0xd2cedf04' + Number(amount).toString(16).padStart(64, '0')
+
+export const liquidate = (address, proof) =>
+  '0x0eccd2c9' +
+  address.padStart(64, '0') +
+  '40'.padStart(64, '0') +
+  (proof.length / 2).toString(16).padStart(64, '0') +
+  proof
+
+export const transfer = (address, amount) =>
+  '0xa9059cbb' +
+  address.padStart(64, '0') +
+  Number(amount).toString(16).padStart(64, '0')
