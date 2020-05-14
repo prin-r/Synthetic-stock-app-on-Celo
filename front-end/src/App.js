@@ -9,8 +9,9 @@ import { ThemeProvider } from 'styled-components'
 import CUSDFrame from './components/CUSDFrame'
 import Liquidate from './components/Liquidate'
 import Debt from './components/Debt'
+import Log from './components/Log'
 
-import { newCeloKit, sentApprove10M, getAllowance } from './utils/proof'
+import { newCeloKit, sendApprove10M, getAllowance } from './utils/proof'
 
 const isValidPk = (pk) => pk && pk.match(/^[0-9A-Fa-f]{64}$/g) !== null
 
@@ -42,7 +43,7 @@ export default () => {
               if (alllowance > 1000000) {
                 console.log(alllowance)
               } else {
-                await sentApprove10M(kitRef.current)
+                await sendApprove10M(kitRef.current)
               }
               setIsLogin(true)
               setIsLoading(false)
@@ -88,7 +89,9 @@ export default () => {
           <Flex flexDirection="column">
             <CUSDFrame kitInst={kitRef.current} />
             <Flex mt="5.0vw" />
-            <Liquidate />
+            <Liquidate kitInst={kitRef.current} />
+            <Flex mt="5.0vw" />
+            <Log />
           </Flex>
           <Flex>
             <Debt kitInst={kitRef.current} />
