@@ -2,7 +2,15 @@ import React, { useEffect, useState } from 'react'
 import { Flex, Text } from 'rebass'
 import colors from 'ui/colors'
 
-import { getSPXBalance, getCDP, sentLock, sentUnlock } from '../utils/proof'
+import {
+  getSPXBalance,
+  getCDP,
+  sendLock,
+  sendUnlock,
+  sendBorrow,
+  sendReturnDebt,
+  sendTransfer,
+} from '../utils/proof'
 
 export default ({ kitInst }) => {
   const [spx, setSPX] = useState(-1)
@@ -43,11 +51,41 @@ export default ({ kitInst }) => {
         <Text>{spx < 0 ? 'loading...' : spx} SPX</Text>
       </Flex>
       <Flex mt="2.0vw" justifyContent="center" style={{ fontSize: '2.0vw' }}>
-        <button>borrow</button>
+        <button
+          onClick={async () => {
+            const amount = window.prompt('Amount of SPX to be borrowed')
+            await sendBorrow(kitInst, amount)
+          }}
+        >
+          borrow
+        </button>
         <Flex mx="1.5vw" />
-        <button>return debt</button>
+        <button
+          onClick={async () => {
+            const amount = window.prompt(
+              'Amount of SPX (debt) you want to return',
+            )
+            await sendReturnDebt(kitInst, amount)
+          }}
+        >
+          return debt
+        </button>
         <Flex mx="1.5vw" />
-        <button>send</button>
+        <button
+          onClick={async () => {
+            const toAddress = window.prompt('Transfer to address')
+            if (!toAddress || !toAddress.match(/^[0-9A-Fa-f]{40}$/g)) {
+              alert('wrong format, address must be 40hex without 0x prefix')
+              return
+            }
+            const amount = window.prompt(
+              'Amount of SPX (debt) you want to return',
+            )
+            await sendTransfer(kitInst, toAddress, amount)
+          }}
+        >
+          send
+        </button>
       </Flex>
       <Flex
         mt="2.0vw"
@@ -66,14 +104,21 @@ export default ({ kitInst }) => {
       <Flex mt="2.0vw" justifyContent="center" style={{ fontSize: '2.0vw' }}>
         <button
           onClick={async () => {
-            const amount = window.prompt('Amount of Celo Dollar')
-            await sentLock(kitInst, amount)
+            const amount = window.prompt('Amount of Celo Dollar to be locked')
+            await sendLock(kitInst, amount)
           }}
         >
           lock
         </button>
         <Flex mx="3.0vw" />
-        <button>unlock</button>
+        <button
+          onClick={async () => {
+            const amount = window.prompt('Amount of Celo Dollar to be unlocked')
+            await sendUnlock(kitInst, amount)
+          }}
+        >
+          unlock
+        </button>
       </Flex>
     </Flex>
   )
