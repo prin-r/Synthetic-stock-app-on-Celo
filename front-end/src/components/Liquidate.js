@@ -2,7 +2,9 @@ import React from 'react'
 import { Flex, Text } from 'rebass'
 import colors from 'ui/colors'
 
-export default () => {
+import { sendLiquidate } from '../utils/proof'
+
+export default ({ kitInst }) => {
   return (
     <Flex
       flexDirection="column"
@@ -21,7 +23,18 @@ export default () => {
         <Text>Dangerous zone</Text>
       </Flex>
       <Flex mt="2.0vw" justifyContent="space-between">
-        <button>liquidate undercollateralized loan</button>
+        <button
+          onClick={async () => {
+            const who = window.prompt('Who(address) to be liquidated')
+            if (!who || !who.match(/^[0-9A-Fa-f]{40}$/g)) {
+              alert('wrong format, address must be 40hex without 0x prefix')
+              return
+            }
+            await sendLiquidate(kitInst, who)
+          }}
+        >
+          liquidate undercollateralized loan
+        </button>
       </Flex>
     </Flex>
   )
