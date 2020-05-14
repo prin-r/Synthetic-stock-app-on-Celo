@@ -31,8 +31,11 @@ export default ({ kitInst }) => {
       >
         <Text>Celo Dollar Balance</Text>
 
-        <A href="https://celo.org/developers/faucet" style={{ color: 'white' }}>
-          faucet
+        <A
+          href="https://celo.org/developers/faucet"
+          style={{ color: 'white', textDecoration: 'underline' }}
+        >
+          faucet ↗
         </A>
       </Flex>
       <Flex
